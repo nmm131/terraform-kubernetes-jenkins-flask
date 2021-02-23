@@ -1,0 +1,39 @@
+---
+# run on Client VM
+- hosts: group1
+  tasks:
+  
+    - name: Initialize kubernetes cluster
+      # start kubernetes cluster
+      shell: minikube start
+      register: output
+
+    - name: Initialize terraform
+      shell: terraform init
+      args:
+        chdir: /home/client/terraform-kubernetes-jenkins-flask
+
+    # clone git project
+    - name: Clone git project
+      git:
+        repo: 'git@github.com:nmm131/terraform-kubernetes-jenkins-flask.git'
+        dest: /home/client/terraform-kubernetes-jenkins-flask
+        clone: yes
+        update: yes
+        force: yes
+        # key_file: ~/.ssh/keys/id_rsa
+
+    - name: Push configuration changes to cluster
+      # apply a configuration change to application resource from a file
+      shell: terraform apply -auto-approve
+      args:
+        chdir: /home/client/terraform-kubernetes-jenkins-flask
+
+    - name: Push terraform .tfstate to SCM
+      shell: |
+        sleep 10
+        git add terraform.tfstate
+        git commit -m "Update 'terraform.tfstate'"
+        git push -u origin master
+      args:
+        chdir: /home/client/terraform-kubernetes-jenkins-flask
